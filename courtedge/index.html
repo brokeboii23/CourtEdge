@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CourtEdge — Basketball Prop Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   CSS VARIABLES & RESET
+   ============================================================ */
+:root {
+  --bg: #0a0b0e;
+  --surface: #111318;
+  --surface-2: #181b22;
+  --surface-3: #1e2230;
+  --border: rgba(255,255,255,0.06);
+  --border-bright: rgba(255,255,255,0.12);
+  --accent: #3b82f6;
+  --accent-dim: rgba(59,130,246,0.15);
+  --accent-glow: rgba(59,130,246,0.3);
+  --green: #22c55e;
+  --green-dim: rgba(34,197,94,0.12);
+  --green-glow: rgba(34,197,94,0.25);
+  --yellow: #eab308;
+  --yellow-dim: rgba(234,179,8,0.12);
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,0.12);
+  --text: #f0f2f7;
+  --text-2: #8b92a8;
+  --text-3: #4d5468;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --radius: 14px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,0.6);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Noise texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.page-wrapper {
+  position: relative;
+  z-index: 1;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 20px 60px;
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 0 32px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 36px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo-mark {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--accent), #6366f1);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  box-shadow: 0 0 20px var(--accent-glow);
+  flex-shrink: 0;
+}
+
+.logo-text {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.5px;
+}
+
+.logo-text span {
+  color: var(--accent);
+}
+
+.header-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-3);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-3);
+  margin-bottom: 22px;
+}
+
+/* ============================================================
+   INPUT FORM
+   ============================================================ */
+.input-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.input-grid .span-2 { grid-column: span 2; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.field label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.field input,
+.field select {
+  background: var(--surface-2);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 15px;
+  padding: 11px 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.field select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b92a8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 38px;
+  cursor: pointer;
+}
+
+.field select option {
+  background: #1e2230;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+  background: var(--surface-3);
+}
+
+.field input::placeholder { color: var(--text-3); }
+
+.field input.error,
+.field select.error {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-dim);
+}
+
+.error-msg {
+  font-size: 12px;
+  color: var(--red);
+  margin-top: -4px;
+}
+
+/* Segmented Toggle */
+.toggle-group {
+  display: flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  padding: 4px;
+  gap: 4px;
+}
+
+.toggle-btn {
+  flex: 1;
+  padding: 9px 16px;
+  border: none;
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s;
+  background: transparent;
+  color: var(--text-2);
+  letter-spacing: 0.02em;
+}
+
+.toggle-btn.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 12px var(--accent-glow);
+}
+
+.toggle-btn:not(.active):hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+/* Analyze Button */
+.btn-analyze {
+  width: 100%;
+  margin-top: 22px;
+  padding: 15px 24px;
+  background: linear-gradient(135deg, var(--accent), #6366f1);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 4px 24px var(--accent-glow);
+}
+
+.btn-analyze:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 32px var(--accent-glow);
+}
+
+.btn-analyze:active { transform: translateY(0); }
+
+/* ============================================================
+   RESULTS SECTION
+   ============================================================ */
+#results {
+  display: none;
+  animation: fadeUp 0.4s ease forwards;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Hero Result Card */
+.hero-card {
+  background: var(--surface);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  padding: 30px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), #6366f1, transparent);
+}
+
+.hero-ev-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.08em;
+}
+
+.badge-pos { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.25); }
+.badge-neg { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+
+.hero-player {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.hero-meta {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 26px;
+  font-family: var(--font-mono);
+}
+
+.hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-bottom: 26px;
+}
+
+.hero-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hero-stat-label {
+  font-size: 11px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+}
+
+.hero-stat-value {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.hero-stat-value.accent { color: var(--accent); }
+.hero-stat-value.green { color: var(--green); }
+.hero-stat-value.yellow { color: var(--yellow); }
+.hero-stat-value.red { color: var(--red); }
+
+/* Recommendation Badge */
+.rec-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.rec-strong { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
+.rec-flex   { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(234,179,8,0.25); }
+.rec-no     { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.25); }
+
+/* EV Bar */
+.ev-bar-section {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.ev-bar-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.ev-bar-label span:first-child {
+  font-size: 12px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+.ev-strength-tag {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+
+.strength-strong { background: var(--green-dim); color: var(--green); }
+.strength-moderate { background: var(--yellow-dim); color: var(--yellow); }
+.strength-weak { background: var(--red-dim); color: var(--red); }
+
+.ev-track {
+  height: 8px;
+  background: var(--surface-3);
+  border-radius: 99px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ev-track-center {
+  position: absolute;
+  left: 50%;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: var(--border-bright);
+  transform: translateX(-50%);
+}
+
+.ev-fill {
+  position: absolute;
+  top: 0; bottom: 0;
+  border-radius: 99px;
+  transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1), left 0.8s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.ev-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+/* ============================================================
+   PROBABILITY BREAKDOWN
+   ============================================================ */
+.prob-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.prob-mini {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  text-align: center;
+}
+
+.prob-mini-label {
+  font-size: 11px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+.prob-mini-value {
+  font-family: var(--font-mono);
+  font-size: 18px;
+  color: var(--text);
+}
+
+.prob-bars { display: flex; flex-direction: column; gap: 14px; }
+
+.prob-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.prob-bar-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.prob-bar-meta span:first-child { color: var(--text-2); }
+.prob-bar-meta span:last-child { font-family: var(--font-mono); color: var(--text); }
+
+.prob-bar-track {
+  height: 6px;
+  background: var(--surface-3);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.prob-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.fill-market { background: var(--text-3); }
+.fill-noviq  { background: linear-gradient(90deg, var(--accent), #6366f1); }
+
+/* ============================================================
+   SLIP RECOMMENDATION
+   ============================================================ */
+.best-use-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+
+.best-use-label {
+  font-size: 12px;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.best-use-value {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--green);
+}
+
+.best-use-value.yellow { color: var(--yellow); }
+.best-use-value.red { color: var(--red); }
+
+.slip-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.slip-card {
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  border: 1px solid;
+  transition: transform 0.15s;
+}
+
+.slip-card:hover { transform: translateY(-2px); }
+
+.slip-card.good {
+  background: var(--green-dim);
+  border-color: rgba(34,197,94,0.2);
+}
+
+.slip-card.bad {
+  background: rgba(239,68,68,0.06);
+  border-color: rgba(239,68,68,0.12);
+}
+
+.slip-card-name {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.slip-card.good .slip-card-name { color: var(--green); }
+.slip-card.bad .slip-card-name { color: var(--red); }
+
+.slip-card-status {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.slip-card.good .slip-card-status { color: rgba(34,197,94,0.8); }
+.slip-card.bad .slip-card-status { color: rgba(239,68,68,0.6); }
+
+/* ============================================================
+   SPORTSBOOK BREAKDOWN
+   ============================================================ */
+.sb-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sb-table tr:not(:last-child) td {
+  border-bottom: 1px solid var(--border);
+}
+
+.sb-table td {
+  padding: 12px 0;
+  font-size: 14px;
+}
+
+.sb-table td:first-child { color: var(--text-2); }
+.sb-table td:last-child {
+  text-align: right;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.sb-pill {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+}
+
+.pill-strong-pos { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+.pill-slight-pos { background: rgba(59,130,246,0.1); color: var(--accent); border: 1px solid rgba(59,130,246,0.2); }
+.pill-neg        { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+.pill-a          { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+.pill-b          { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(234,179,8,0.2); }
+.pill-c          { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+
+/* ============================================================
+   RESET BUTTON
+   ============================================================ */
+.btn-reset {
+  display: block;
+  margin: 28px auto 0;
+  padding: 12px 36px;
+  background: transparent;
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s;
+  letter-spacing: 0.02em;
+}
+
+.btn-reset:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+footer {
+  margin-top: 60px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.footer-brand {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-3);
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+}
+
+.footer-disclaimer {
+  font-size: 11px;
+  color: var(--text-3);
+  max-width: 500px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 600px) {
+  .page-wrapper { padding: 0 16px 50px; }
+
+  .input-grid { grid-template-columns: 1fr; }
+  .input-grid .span-2 { grid-column: span 1; }
+
+  .hero-stats { grid-template-columns: repeat(2, 1fr); }
+  .hero-stats .hero-stat:last-child { grid-column: span 2; }
+
+  .prob-grid { grid-template-columns: repeat(2, 1fr); }
+  .prob-grid .prob-mini:last-child { grid-column: span 2; }
+
+  .slip-grid { grid-template-columns: 1fr; }
+
+  header { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+
+@media (min-width: 601px) and (max-width: 780px) {
+  .slip-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Stagger animation for results children */
+#results > * {
+  animation: fadeUp 0.4s ease forwards;
+  opacity: 0;
+}
+#results > *:nth-child(1) { animation-delay: 0.05s; }
+#results > *:nth-child(2) { animation-delay: 0.12s; }
+#results > *:nth-child(3) { animation-delay: 0.19s; }
+#results > *:nth-child(4) { animation-delay: 0.26s; }
+#results > *:nth-child(5) { animation-delay: 0.33s; }
+</style>
+</head>
+<body>
+
+<div class="page-wrapper">
+
+  <!-- ============================================================
+       HEADER
+       ============================================================ -->
+  <header>
+    <div class="logo">
+      <div class="logo-mark">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2 13L7 8L10 11L16 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 4H16V8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="logo-text">Court<span>Edge</span></span>
+    </div>
+    <span class="header-tag">Basketball Prop Analytics</span>
+  </header>
+
+  <!-- ============================================================
+       INPUT CARD
+       ============================================================ -->
+  <div class="card">
+    <div class="card-title">Prop Analyzer</div>
+
+    <div class="input-grid">
+      <!-- Player Name -->
+      <div class="field span-2">
+        <label>Player Name</label>
+        <input type="text" id="playerName" placeholder="e.g. LeBron James">
+      </div>
+
+      <!-- Stat Type -->
+      <div class="field">
+        <label>Stat Type</label>
+        <select id="statType">
+          <option value="">Select stat…</option>
+          <option>Points</option>
+          <option>Rebounds</option>
+          <option>Assists</option>
+          <option>PRA</option>
+          <option>3-Pointers Made</option>
+          <option>Blocks</option>
+          <option>Steals</option>
+        </select>
+      </div>
+
+      <!-- Betting Line -->
+      <div class="field">
+        <label>Betting Line</label>
+        <input type="number" id="line" placeholder="e.g. 24.5" step="0.5">
+      </div>
+
+      <!-- Over Odds -->
+      <div class="field">
+        <label>Over Odds (American)</label>
+        <input type="number" id="overOdds" placeholder="e.g. -115 or +105">
+      </div>
+
+      <!-- Under Odds -->
+      <div class="field">
+        <label>Under Odds (American)</label>
+        <input type="number" id="underOdds" placeholder="e.g. -105 or +100">
+      </div>
+
+      <!-- Bet Side -->
+      <div class="field span-2">
+        <label>Bet Side</label>
+        <div class="toggle-group" id="betSideGroup">
+          <button class="toggle-btn active" data-side="Over">Over</button>
+          <button class="toggle-btn" data-side="Under">Under</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inline error -->
+    <div id="formError" class="error-msg" style="display:none; margin-top:12px;"></div>
+
+    <button class="btn-analyze" id="analyzeBtn">Analyze Prop →</button>
+  </div>
+
+  <!-- ============================================================
+       RESULTS (hidden until analyzed)
+       ============================================================ -->
+  <div id="results">
+
+    <!-- HERO CARD -->
+    <div class="hero-card">
+      <span class="hero-ev-badge" id="heroBadge"></span>
+      <div class="hero-player" id="heroPlayer"></div>
+      <div class="hero-meta" id="heroMeta"></div>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <span class="hero-stat-label">True Probability</span>
+          <span class="hero-stat-value accent" id="heroProb"></span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-label">Fair Odds</span>
+          <span class="hero-stat-value" id="heroFairOdds"></span>
+        </div>
+        <div class="hero-stat">
+          <span class="hero-stat-label">EV per $100</span>
+          <span class="hero-stat-value" id="heroEV"></span>
+        </div>
+      </div>
+
+      <div id="heroRecBadge"></div>
+
+      <!-- EV Bar -->
+      <div class="ev-bar-section">
+        <div class="ev-bar-label">
+          <span>EV Position</span>
+          <span class="ev-strength-tag" id="evStrengthTag"></span>
+        </div>
+        <div class="ev-track">
+          <div class="ev-track-center"></div>
+          <div class="ev-fill" id="evFill"></div>
+        </div>
+        <div class="ev-labels">
+          <span>-EV</span>
+          <span>Neutral</span>
+          <span>+EV</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROBABILITY BREAKDOWN -->
+    <div class="card">
+      <div class="card-title">Probability Breakdown</div>
+
+      <div class="prob-grid">
+        <div class="prob-mini">
+          <div class="prob-mini-label">Over Implied</div>
+          <div class="prob-mini-value" id="pbOverImpl"></div>
+        </div>
+        <div class="prob-mini">
+          <div class="prob-mini-label">Under Implied</div>
+          <div class="prob-mini-value" id="pbUnderImpl"></div>
+        </div>
+        <div class="prob-mini">
+          <div class="prob-mini-label">Sportsbook Vig</div>
+          <div class="prob-mini-value" id="pbVig"></div>
+        </div>
+      </div>
+
+      <div class="prob-bars">
+        <div class="prob-bar-row">
+          <div class="prob-bar-meta">
+            <span>Market Implied Prob</span>
+            <span id="pbMarketVal"></span>
+          </div>
+          <div class="prob-bar-track">
+            <div class="prob-bar-fill fill-market" id="pbMarketBar"></div>
+          </div>
+        </div>
+        <div class="prob-bar-row">
+          <div class="prob-bar-meta">
+            <span>True No-Vig Prob</span>
+            <span id="pbNoVigVal"></span>
+          </div>
+          <div class="prob-bar-track">
+            <div class="prob-bar-fill fill-noviq" id="pbNoVigBar"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIP RECOMMENDATIONS -->
+    <div class="card">
+      <div class="card-title">Best Slip Types For This Prop</div>
+
+      <div class="best-use-banner">
+        <span class="best-use-label">Best Use</span>
+        <span class="best-use-value" id="bestUseText"></span>
+      </div>
+
+      <div class="slip-grid" id="slipGrid"></div>
+    </div>
+
+    <!-- SPORTSBOOK BREAKDOWN -->
+    <div class="card">
+      <div class="card-title">Sportsbook Breakdown</div>
+      <table class="sb-table" id="sbTable"></table>
+    </div>
+
+    <!-- RESET -->
+    <button class="btn-reset" id="resetBtn">← Analyze Another Prop</button>
+
+  </div><!-- /#results -->
+
+  <!-- ============================================================
+       FOOTER
+       ============================================================ -->
+  <footer>
+    <div class="footer-brand">CourtEdge — Basketball Prop Analytics</div>
+    <p class="footer-disclaimer">CourtEdge is an independent analytics tool and is not affiliated with any sportsbook. All calculations are for informational purposes only. Please bet responsibly.</p>
+  </footer>
+
+</div><!-- /.page-wrapper -->
+
+<script>
+/* ============================================================
+   JAVASCRIPT — PropEdge Analytics
+   ============================================================ */
+
+// ── Bet Side Toggle ──────────────────────────────────────────
+const toggleBtns = document.querySelectorAll('.toggle-btn');
+let selectedSide = 'Over';
+
+toggleBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    toggleBtns.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedSide = btn.dataset.side;
+  });
+});
+
+// ── Calculations ─────────────────────────────────────────────
+
+function impliedProb(odds) {
+  odds = parseFloat(odds);
+  if (isNaN(odds)) return null;
+  if (odds < 0) return Math.abs(odds) / (Math.abs(odds) + 100);
+  return 100 / (odds + 100);
+}
+
+function fairOdds(prob) {
+  if (prob >= 1 || prob <= 0) return 'N/A';
+  let odds;
+  if (prob > 0.5) {
+    odds = -(prob / (1 - prob)) * 100;
+  } else {
+    odds = ((1 - prob) / prob) * 100;
+  }
+  return formatAmericanOdds(odds);
+}
+
+function formatAmericanOdds(odds) {
+  const rounded = Math.round(odds);
+  return rounded > 0 ? '+' + rounded : '' + rounded;
+}
+
+function calcEV(trueProb, odds) {
+  // EV per $100 staked
+  odds = parseFloat(odds);
+  let payout; // net profit on $100
+  if (odds < 0) {
+    payout = (100 / Math.abs(odds)) * 100;
+  } else {
+    payout = odds;
+  }
+  // EV = trueProb * payout - (1-trueProb) * 100
+  return (trueProb * payout) - ((1 - trueProb) * 100);
+}
+
+// ── Slip Thresholds ──────────────────────────────────────────
+// Internal thresholds (not shown in UI)
+const SLIP_THRESHOLDS = {
+  '2 Leg Power':  0.64,
+  '3 Leg Power':  0.60,
+  '3 Leg Flex':   0.56,
+  '4 Leg Power':  0.58,
+  '4 Leg Flex':   0.54,
+  '5 Leg Flex':   0.52,
+  '6 Leg Flex':   0.50,
+};
+
+const SLIP_ORDER = [
+  '2 Leg Power',
+  '3 Leg Power',
+  '3 Leg Flex',
+  '4 Leg Power',
+  '4 Leg Flex',
+  '5 Leg Flex',
+  '6 Leg Flex',
+];
+
+function evaluateSlips(trueProb) {
+  return SLIP_ORDER.map(name => ({
+    name,
+    eligible: trueProb >= SLIP_THRESHOLDS[name]
+  }));
+}
+
+function bestSlip(slips) {
+  // Return the first (strictest) eligible slip, or "Not Recommended"
+  const eligible = slips.filter(s => s.eligible);
+  if (!eligible.length) return { label: 'Not Recommended', color: 'red' };
+  const best = eligible[0];
+  if (SLIP_THRESHOLDS[best.name] >= 0.62) return { label: best.name, color: 'green' };
+  if (SLIP_THRESHOLDS[best.name] >= 0.54) return { label: best.name, color: 'green' };
+  return { label: best.name, color: 'yellow' };
+}
+
+// ── EV Bar Logic ─────────────────────────────────────────────
+// EV range: roughly -20 to +20 for display
+function evBarPosition(ev) {
+  const clampedEv = Math.max(-20, Math.min(20, ev));
+  // Center = 50%, each unit = 2.5%
+  const pct = 50 + (clampedEv * 2.5);
+  return pct;
+}
+
+function evStrength(ev) {
+  if (ev >= 6) return { label: 'Strong Edge', cls: 'strength-strong' };
+  if (ev >= 2) return { label: 'Moderate Edge', cls: 'strength-moderate' };
+  return { label: 'Weak Edge', cls: 'strength-weak' };
+}
+
+// ── Recommendation ────────────────────────────────────────────
+function recommendation(trueProb, ev) {
+  if (trueProb >= 0.60 && ev >= 4) return { label: '✅ Strong Pick', cls: 'rec-strong' };
+  if (trueProb >= 0.55 || ev >= 1) return { label: '⚡ Flex Play Only', cls: 'rec-flex' };
+  return { label: '❌ Not Recommended', cls: 'rec-no' };
+}
+
+// ── Confidence Tier ──────────────────────────────────────────
+function confidenceTier(trueProb) {
+  if (trueProb >= 0.62) return { label: 'Grade A', cls: 'pill-a' };
+  if (trueProb >= 0.55) return { label: 'Grade B', cls: 'pill-b' };
+  return { label: 'Grade C', cls: 'pill-c' };
+}
+
+// ── Format Helpers ────────────────────────────────────────────
+function pct(v) { return (v * 100).toFixed(1) + '%'; }
+function dollar(v) {
+  const sign = v >= 0 ? '+' : '';
+  return sign + '$' + Math.abs(v).toFixed(2);
+}
+
+// ── Validation ────────────────────────────────────────────────
+function validateInputs() {
+  const playerName = document.getElementById('playerName').value.trim();
+  const statType   = document.getElementById('statType').value;
+  const line       = document.getElementById('line').value;
+  const overOdds   = document.getElementById('overOdds').value;
+  const underOdds  = document.getElementById('underOdds').value;
+
+  const errEl = document.getElementById('formError');
+  let valid = true;
+
+  // Clear previous errors
+  ['playerName','statType','line','overOdds','underOdds'].forEach(id => {
+    document.getElementById(id).classList.remove('error');
+  });
+  errEl.style.display = 'none';
+
+  const missing = [];
+  if (!playerName) { missing.push('Player Name'); document.getElementById('playerName').classList.add('error'); valid = false; }
+  if (!statType)   { missing.push('Stat Type');   document.getElementById('statType').classList.add('error');   valid = false; }
+  if (!line)       { missing.push('Line');         document.getElementById('line').classList.add('error');       valid = false; }
+  if (!overOdds)   { missing.push('Over Odds');    document.getElementById('overOdds').classList.add('error');   valid = false; }
+  if (!underOdds)  { missing.push('Under Odds');   document.getElementById('underOdds').classList.add('error'); valid = false; }
+
+  if (!valid) {
+    errEl.textContent = 'Please fill in: ' + missing.join(', ');
+    errEl.style.display = 'block';
+  }
+
+  return valid;
+}
+
+// ── Main Analyze Function ─────────────────────────────────────
+document.getElementById('analyzeBtn').addEventListener('click', () => {
+  if (!validateInputs()) return;
+
+  const playerName = document.getElementById('playerName').value.trim();
+  const statType   = document.getElementById('statType').value;
+  const line       = parseFloat(document.getElementById('line').value);
+  const overOddsV  = parseFloat(document.getElementById('overOdds').value);
+  const underOddsV = parseFloat(document.getElementById('underOdds').value);
+  const side       = selectedSide;
+
+  // ── Core Math ─────────────────────────────────
+  const overImpl  = impliedProb(overOddsV);
+  const underImpl = impliedProb(underOddsV);
+  const vig       = overImpl + underImpl - 1;
+
+  const overNoVig  = overImpl  / (overImpl + underImpl);
+  const underNoVig = underImpl / (overImpl + underImpl);
+
+  const trueProb  = side === 'Over' ? overNoVig : underNoVig;
+  const sideOdds  = side === 'Over' ? overOddsV : underOddsV;
+  const marketImp = side === 'Over' ? overImpl  : underImpl;
+
+  const fOdds = fairOdds(trueProb);
+  const ev    = calcEV(trueProb, sideOdds);
+  const slips = evaluateSlips(trueProb);
+  const best  = bestSlip(slips);
+  const rec   = recommendation(trueProb, ev);
+  const conf  = confidenceTier(trueProb);
+  const evStr = evStrength(ev);
+  const evPos = evBarPosition(ev);
+
+  // ── Hero Card ──────────────────────────────────
+  document.getElementById('heroPlayer').textContent = playerName;
+  document.getElementById('heroMeta').textContent =
+    statType + '  ·  Line: ' + line + '  ·  ' + side.toUpperCase();
+
+  // EV badge
+  const badge = document.getElementById('heroBadge');
+  if (ev >= 0) {
+    badge.textContent = '+EV';
+    badge.className = 'hero-ev-badge badge-pos';
+  } else {
+    badge.textContent = '-EV';
+    badge.className = 'hero-ev-badge badge-neg';
+  }
+
+  // Stats
+  document.getElementById('heroProb').textContent = pct(trueProb);
+  document.getElementById('heroFairOdds').textContent = fOdds;
+
+  const evEl = document.getElementById('heroEV');
+  evEl.textContent = dollar(ev);
+  evEl.className = 'hero-stat-value ' + (ev >= 4 ? 'green' : ev >= 0 ? 'accent' : 'red');
+
+  // Rec badge
+  const recEl = document.getElementById('heroRecBadge');
+  recEl.innerHTML = `<span class="rec-badge ${rec.cls}">${rec.label}</span>`;
+
+  // EV Bar
+  const evFill = document.getElementById('evFill');
+  if (ev >= 0) {
+    // fill from center rightward
+    evFill.style.left = '50%';
+    evFill.style.width = Math.min((ev / 20) * 50, 50) + '%';
+    evFill.style.background = 'linear-gradient(90deg, #22c55e80, #22c55e)';
+  } else {
+    // fill from position to center
+    const w = Math.min((Math.abs(ev) / 20) * 50, 50);
+    evFill.style.left = (50 - w) + '%';
+    evFill.style.width = w + '%';
+    evFill.style.background = 'linear-gradient(90deg, #ef4444, #ef444480)';
+  }
+
+  const strTag = document.getElementById('evStrengthTag');
+  strTag.textContent = evStr.label;
+  strTag.className = 'ev-strength-tag ' + evStr.cls;
+
+  // ── Probability Breakdown ──────────────────────
+  document.getElementById('pbOverImpl').textContent  = pct(overImpl);
+  document.getElementById('pbUnderImpl').textContent = pct(underImpl);
+  document.getElementById('pbVig').textContent       = pct(vig);
+
+  document.getElementById('pbMarketVal').textContent = pct(marketImp);
+  document.getElementById('pbNoVigVal').textContent  = pct(trueProb);
+
+  // Animate bars after brief delay
+  setTimeout(() => {
+    document.getElementById('pbMarketBar').style.width = pct(marketImp);
+    document.getElementById('pbNoVigBar').style.width  = pct(trueProb);
+  }, 100);
+
+  // ── Slip Grid ──────────────────────────────────
+  const bestUseEl = document.getElementById('bestUseText');
+  bestUseEl.textContent = best.label;
+  bestUseEl.className = 'best-use-value ' + (best.color === 'red' ? 'red' : best.color === 'yellow' ? 'yellow' : '');
+
+  const slipGrid = document.getElementById('slipGrid');
+  slipGrid.innerHTML = '';
+  slips.forEach(slip => {
+    const div = document.createElement('div');
+    div.className = 'slip-card ' + (slip.eligible ? 'good' : 'bad');
+    div.innerHTML = `
+      <div class="slip-card-name">${slip.name}</div>
+      <div class="slip-card-status">${slip.eligible ? '✅ Good for this slip' : '❌ Not recommended'}</div>
+    `;
+    slipGrid.appendChild(div);
+  });
+
+  // ── Sportsbook Breakdown ───────────────────────
+  // EV pill
+  let evPillCls = 'pill-neg', evPillText = 'Negative EV';
+  if (ev >= 4)       { evPillCls = 'pill-strong-pos'; evPillText = 'Strong +EV'; }
+  else if (ev >= 0.5){ evPillCls = 'pill-slight-pos'; evPillText = 'Slight +EV'; }
+
+  document.getElementById('sbTable').innerHTML = `
+    <tr>
+      <td>Selected Side</td>
+      <td>${side}</td>
+    </tr>
+    <tr>
+      <td>Bet Odds</td>
+      <td>${formatAmericanOdds(sideOdds)}</td>
+    </tr>
+    <tr>
+      <td>Fair Value Odds</td>
+      <td>${fOdds}</td>
+    </tr>
+    <tr>
+      <td>EV per $100</td>
+      <td><span class="sb-pill ${evPillCls}">${evPillText}</span></td>
+    </tr>
+    <tr>
+      <td>Confidence Tier</td>
+      <td><span class="sb-pill ${conf.cls}">${conf.label}</span></td>
+    </tr>
+  `;
+
+  // ── Show Results ───────────────────────────────
+  const resultsEl = document.getElementById('results');
+  resultsEl.style.display = 'block';
+
+  // Scroll to results smoothly
+  setTimeout(() => {
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 50);
+});
+
+// ── Reset Button ──────────────────────────────────────────────
+document.getElementById('resetBtn').addEventListener('click', () => {
+  document.getElementById('results').style.display = 'none';
+  document.getElementById('playerName').value = '';
+  document.getElementById('statType').value = '';
+  document.getElementById('line').value = '';
+  document.getElementById('overOdds').value = '';
+  document.getElementById('underOdds').value = '';
+  document.getElementById('formError').style.display = 'none';
+  ['playerName','statType','line','overOdds','underOdds'].forEach(id => {
+    document.getElementById(id).classList.remove('error');
+  });
+  // Reset bars
+  document.getElementById('pbMarketBar').style.width = '0';
+  document.getElementById('pbNoVigBar').style.width = '0';
+  // Reset toggle
+  toggleBtns.forEach(b => b.classList.toggle('active', b.dataset.side === 'Over'));
+  selectedSide = 'Over';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+</script>
+</body>
+</html>
